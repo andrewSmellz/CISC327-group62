@@ -114,3 +114,40 @@ def test_delete_renter(client):
     response = client.delete(f"/renters/{john['id']}")
     assert response.status_code == 404
     assert response.get_json() == {"error": "Renter not found"}
+
+# Return rented equipment
+def test_return_rented_equipment(client):
+    """Returning a rental records the return date and frees up the unit."""
+    renter = client.post(
+        "/renters", json={"name": "John Smith", "email": "john@example.com"}
+    ).get_json()
+    equipment = client.post(
+        "/equipment", json={"name": "Chainsaw", "category": "Tools", "total_units": 2}
+    ).get_json()
+    rental = client.post(
+        "/rentals", json={"equipment_id": equipment["id"], "renter_id": renter["id"]}
+    ).get_json()
+
+    availability = client.get(f"/equipment/{equipment['id']}/availability").get_json()
+    assert availability["available_units"] == 1
+    assert rental["return_date"] is None
+
+    response = client.put(f"/rentals/{rental['id']}/return")
+    assert response.status_code == 200
+    returned = response.get_json()
+    assert returned["return_date"] == date.today().isoformat()
+
+    availability = client.get(f"/equipment/{equipment['id']}/availability").get_json()
+    assert availability["available_units"] == 2
+
+    # Returning the same rental twice is not allowed and doesn't add another unit
+    response = client.put(f"/rentals/{rental['id']}/return")
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Rental already returned"}
+    availability = client.get(f"/equipment/{equipment['id']}/availability").get_json()
+    assert availability["available_units"] == 2
+
+    # Returning a rental that doesn't exist returns 404
+    response = client.put("/rentals/999/return")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Rental not found"}
