@@ -92,3 +92,25 @@ def test_update_renter(client):
     response = client.put("/renters/999", json={"name": "Nobody"})
     assert response.status_code == 404
     assert response.get_json() == {"error": "Renter not found"}
+
+# Delete renter
+def test_delete_renter(client):
+    """Deleting a renter removes only that renter, and an unknown id returns 404."""
+    john = client.post(
+        "/renters", json={"name": "John Smith", "email": "john@example.com"}
+    ).get_json()
+    jane = client.post(
+        "/renters", json={"name": "Jane Doe", "email": "jane@example.com"}
+    ).get_json()
+
+    response = client.delete(f"/renters/{john['id']}")
+    assert response.status_code == 204
+
+    response = client.get(f"/renters/{john['id']}")
+    assert response.status_code == 404
+    assert client.get("/renters").get_json() == [jane]
+
+    # Deleting John again (or any unknown id) returns 404
+    response = client.delete(f"/renters/{john['id']}")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Renter not found"}
