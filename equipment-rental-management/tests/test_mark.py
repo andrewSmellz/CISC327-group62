@@ -151,3 +151,40 @@ def test_return_rented_equipment(client):
     response = client.put("/rentals/999/return")
     assert response.status_code == 404
     assert response.get_json() == {"error": "Rental not found"}
+
+# Look up rentals
+def test_look_up_rentals(client):
+    """Rentals can be looked up by equipment and by renter."""
+    john = client.post(
+        "/renters", json={"name": "John Smith", "email": "john@example.com"}
+    ).get_json()
+    jane = client.post(
+        "/renters", json={"name": "Jane Doe", "email": "jane@example.com"}
+    ).get_json()
+    chainsaw = client.post(
+        "/equipment", json={"name": "Chainsaw", "category": "Tools", "total_units": 1}
+    ).get_json()
+    jackhammer = client.post(
+        "/equipment", json={"name": "Jackhammer", "category": "Construction", "total_units": 1}
+    ).get_json()
+
+    john_rental = client.post(
+        "/rentals", json={"equipment_id": jackhammer["id"], "renter_id": john["id"]}
+    ).get_json()
+    jane_rental = client.post(
+        "/rentals", json={"equipment_id": chainsaw["id"], "renter_id": jane["id"]}
+    ).get_json()
+
+    response = client.get("/rentals")
+    assert response.status_code == 200
+    assert len(response.get_json()) == 2
+
+    # Look up by equipment
+    response = client.get(f"/rentals?equipment_id={chainsaw['id']}")
+    assert response.status_code == 200
+    assert response.get_json() == [jane_rental]
+
+    # Look up by renter 
+    response = client.get(f"/rentals?renter_id={john['id']}")
+    assert response.status_code == 200
+    assert response.get_json() == [john_rental] # Assertion fails due to line 17 in routes/rentals.py
