@@ -1,5 +1,5 @@
 # ============================================================
-# TESTS for Mark's assigned features
+# TESTS FOR MARK'S ASSIGNED FEATURES
 # ============================================================
 from datetime import date
 
@@ -62,5 +62,33 @@ def test_view_one_renter(client):
 
     # An id that doesn't exist returns a 404 error
     response = client.get("/renters/999")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Renter not found"}
+
+# Update renter
+def test_update_renter(client):
+    """Updating a renter changes only the given fields and the change is saved."""
+    john = client.post(
+        "/renters", json={"name": "John Smith", "email": "john@example.com"}
+    ).get_json()
+    jane = client.post(
+        "/renters", json={"name": "Jane Doe", "email": "jane@example.com"}
+    ).get_json()
+
+    response = client.put(
+        f"/renters/{john['id']}", json={"email": "john.smith@example.com"}
+    )
+    assert response.status_code == 200
+    updated = response.get_json()
+    assert updated["email"] == "john.smith@example.com"
+    assert updated["name"] == "John Smith" 
+    assert updated["id"] == john["id"]
+    assert updated["membership_date"] == john["membership_date"]
+
+    assert client.get(f"/renters/{john['id']}").get_json() == updated
+    assert client.get(f"/renters/{jane['id']}").get_json() == jane
+
+    # Updating an id that doesn't exist returns a 404 error
+    response = client.put("/renters/999", json={"name": "Nobody"})
     assert response.status_code == 404
     assert response.get_json() == {"error": "Renter not found"}
