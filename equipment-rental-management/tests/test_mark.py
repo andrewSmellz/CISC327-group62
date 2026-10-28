@@ -20,3 +20,24 @@ def test_add_renter(client):
     get_resp = client.get(f"/renters/{renter['id']}")
     assert get_resp.status_code == 200
     assert get_resp.get_json() == renter
+
+# List renters
+def test_list_renters(client):
+    """Listing renters returns every renter that has been added."""
+    response = client.get("/renters")
+    assert response.status_code == 200
+    assert response.get_json() == []
+
+    first = client.post(
+        "/renters", json={"name": "John Smith", "email": "john@example.com"}
+    ).get_json()
+    second = client.post(
+        "/renters", json={"name": "Jane Doe", "email": "jane@example.com"}
+    ).get_json()
+
+    response = client.get("/renters")
+    assert response.status_code == 200
+    renters = response.get_json()
+    assert len(renters) == 2
+    assert first in renters
+    assert second in renters
