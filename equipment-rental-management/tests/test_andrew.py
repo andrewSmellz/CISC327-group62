@@ -74,4 +74,70 @@ def test_add_equipment_negative_units_expected_fail(client):
     payload = {"name": "sleeping bag", "category": "Camping", "total_units": -1}
     response = client.post("/equipment", json=payload)
     assert response.status_code in (400, 422)
+
+
+
+# ------------------------------------------------------------
+# List equipment 
+# ------------------------------------------------------------
+def test_list_equipment_returns_empty_list_initially(client):
+    """The equipment list is empty before anything has been added."""
+    response = client.get("/equipment")
+    assert response.status_code == 200
+    assert response.get_json() == []
+ 
+ 
+def test_added_equipment_appears_in_list(client):
+    """Create-then-verify: the new item shows up in the equipment list unchanged."""
+    payload = {"name": "Kayak", "category": "Water", "total_units": 2}
+    created = client.post("/equipment", json=payload).get_json()
+ 
+    response = client.get("/equipment")
+    assert response.status_code == 200
+    assert response.get_json() == [created]
+ 
+ 
+def test_list_equipment_returns_all_items_in_order(client):
+    """Three added items all appear in the list, in the order they were added."""
+    created = []
+    for i in range(3):
+        payload = {"name": f"Item {i}", "category": "MISC", "total_units": 1}
+        created.append(client.post("/equipment", json=payload).get_json())
+ 
+    response = client.get("/equipment")
+    assert response.status_code == 200
+    assert response.get_json() == created
+
+
+#------------------------------------------------------------
+# Delete equipment
+# ------------------------------------------------------------
+def test_delete_equipment_removes_it_from_list(client):
+    """After a delete, the item no longer appears in the equipment list."""
+
+    payload = {"name": "Tent", "category": "Camping", "total_units": 1}
+    equipment_id = client.post("/equipment", json=payload).get_json()["id"]
+ 
+    response = client.delete(f"/equipment/{equipment_id}")
+    assert response.status_code == 204 
+ 
+    # Verify the resulting state, not just the status code
+    assert client.get("/equipment").get_json() == []
+ 
+ 
+def test_delete_equipment_only_removes_target(client):
+    """Deleting one item leaves the other item untouched."""
+    keep = client.post(
+        "/equipment", json={"name": "Keep", "category": "MISC", "total_units": 1}
+    ).get_json()
+    drop = client.post(
+        "/equipment", json={"name": "Drop", "category": "MISC", "total_units": 1}
+    ).get_json()
+ 
+    client.delete(f"/equipment/{drop['id']}")
+ 
+    response = client.get("/equipment")
+    assert response.get_json() == [keep]
+ 
+ 
  
