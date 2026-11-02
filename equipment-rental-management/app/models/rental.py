@@ -36,6 +36,16 @@ class Rental:
             "deposit_released": self.deposit_released,
         }
 
+    def is_overdue(self, today=None):
+        today = today or date.today()
+        return self.return_date is None and self.due_date < today
+
+    def days_overdue(self, today=None):
+        today = today or date.today()
+        if not self.is_overdue(today):
+            return 0
+        return (today - self.due_date).days
+
     @staticmethod
     def default_due_date():
         return date.today() + timedelta(days=RENTAL_PERIOD_DAYS)

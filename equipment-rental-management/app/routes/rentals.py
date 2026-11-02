@@ -19,6 +19,16 @@ def list_rentals():
         results = [r for r in results if r.equipment_id == equipment_id]
     return jsonify([r.to_dict() for r in results])
 
+@rentals_bp.route("/overdue", methods=["GET"])
+def list_overdue_rentals():
+    overdue = [r for r in store.rentals.values() if r.is_overdue()]
+    results = []
+    for rental in overdue:
+        data = rental.to_dict()
+        data["days_overdue"] = rental.days_overdue()
+        results.append(data)
+    return jsonify(results)
+
 
 @rentals_bp.route("", methods=["POST"])
 def checkout_equipment():
