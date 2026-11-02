@@ -1,7 +1,8 @@
 # ============================================================
 # TESTS FOR MARK'S ASSIGNED FEATURES
 # ============================================================
-from datetime import date
+from datetime import date, timedelta
+from app import store
 
 # Add renter
 def test_add_renter(client):
@@ -188,3 +189,67 @@ def test_look_up_rentals(client):
     response = client.get(f"/rentals?renter_id={john['id']}")
     assert response.status_code == 200
     assert response.get_json() == [john_rental] # Assertion fails due to line 17 in routes/rentals.py
+
+def test_overdue_rentals_only_unreturned(client):
+    """Only rentals that are past due date and not returned are marked as overdue."""
+    john = client.post(
+        "/renters", json={"name": "John Smith", "email": "john@example.com"}
+    ).get_json()
+    jane = client.post(
+        "/renters", json={"name": "Jane Doe", "email": "jane@example.com"}
+    ).get_json()
+    chainsaw = client.post(
+        "/equipment", json={"name": "Chainsaw", "category": "Tools", "total_units": 1}
+    ).get_json()
+    jackhammer = client.post(
+        "/equipment", json={"name": "Jackhammer", "category": "Construction", "total_units": 1}
+    ).get_json()
+
+    overdue = client.post(
+        "/rentals", json={"equipment_id": chainsaw["id"], "renter_id": john["id"]}
+    ).get_json()
+    returned_late = client.post(
+        "/rentals", json={"equipment_id": chainsaw["id"], "renter_id": jane["id"]}
+    ).get_json()
+    on_time = client.post(
+        "/rentals", json={"equipment_id": jackhammer["id"], "renter_id": jane["id"]}
+    ).get_json()
+
+    store.rentals[overdue["id"]].due_date = date.today() - timedelta(days=3)
+    store.rentals[returned_late["id"]].due_date = date.today() - timedelta(days=2)
+    client.put(f"/rentals/{returned_late['id']}/return")
+
+    response = client.get("/rentals/overdue")
+    assert response.status_code == 200
+    results = response.get_json()
+    assert len(results) == 1
+    assert results[0]["id"] == overdue["id"]
+    assert results[0]["renter_id"] == john["id"]
+    assert results[0]["equipment_id"] == chainsaw["id"]
+    assert results[0]["days_overdue"] == 3
+    assert on_time["id"] not in [r["id"] for r in results]
+
+def test_overdue_rentals_due_today(client):
+    "A rental due today is not overdue, and returning an overdue rental removes it."
+    john = client.post(
+            "/renters", json={"name": "John Smith", "email": "john@example.com"}
+        ).get_json()
+    chainsaw = client.post(
+            "/equipment", json={"name": "Chainsaw", "category": "Tools", "total_units": 1}
+        ).get_json()
+    rental = client.post(
+        "/rentals", json={"equipment_id": chainsaw["id"], "renter_id": john["id"]}
+    ).get_json()
+
+    # Due today
+    store.rentals[rental["id"]].due_date = date.today()
+    assert client.get("/rentals/overdue").get_json() == []
+
+    # Due yesterday
+    store.rentals[rental["id"]].due_date = date.today() - timedelta(days=1)
+    results = client.get("/rentals/overdue").get_json()
+    assert [r["id"] for r in results] == [rental["id"]]
+
+    # After returned, it shouldnt be overdue
+    client.put(f"/rentals/{rental['id']}/return")
+    assert client.get("/rentals/overdue").get_json() == []
