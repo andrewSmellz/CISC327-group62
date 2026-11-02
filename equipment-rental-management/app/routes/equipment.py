@@ -87,3 +87,19 @@ def get_availability(equipment_id):
         "available_units": item.available_units,
         "total_units": item.total_units,
     })
+
+
+
+
+@equipment_bp.route("/<int:equipment_id>/damage", methods=["PATCH"])
+def record_damage(equipment_id):
+    """Record damage found on a piece of equipment."""
+    item = store.equipment.get(equipment_id)
+    if item is None:
+        return jsonify({"error": "Equipment not found"}), 404
+    data = request.get_json()
+    description = data.get("description")
+    if not description:
+        return jsonify({"error": "Description is required"}), 400
+    item.damage_notes = description
+    return jsonify(item.to_dict())
