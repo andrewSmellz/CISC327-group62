@@ -225,3 +225,27 @@ def test_checkout_beyond_available_stock_expected_fail(client):
  
     item = client.get("/equipment").get_json()[0]
     assert item["available_units"] >= 0
+
+
+
+# ------------------------------------------------------------
+# Record equipment damage
+# ------------------------------------------------------------
+def test_new_equipment_has_no_damage_notes(client):
+    """A newly added item has no damage recorded."""
+    payload = {"name": "Tent", "category": "Camping", "total_units": 1}
+    created = client.post("/equipment", json=payload).get_json()
+    assert created["damage_notes"] is None
+
+def test_record_damage_stores_description(client):
+    """Recording damage returns 200 and the item with the description in damage_notes."""
+    payload = {"name": "Tent", "category": "Camping", "total_units": 1}
+    equipment_id = client.post("/equipment", json=payload).get_json()["id"]
+
+    response = client.patch(
+        f"/equipment/{equipment_id}/damage", json={"description": "broken zipper"}
+    )
+    assert response.status_code == 200
+    item = response.get_json()
+    assert item["id"] == equipment_id
+    assert item["damage_notes"] == "broken zipper"
