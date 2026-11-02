@@ -86,14 +86,14 @@ def test_add_equipment_negative_units_expected_fail(client):
 # List equipment 
 # ------------------------------------------------------------
 def test_list_equipment_returns_empty_list_initially(client):
-    """The equipment list is empty before anything has been added."""
+    """The equipment list is initially empty before anything has been added."""
     response = client.get("/equipment")
     assert response.status_code == 200
     assert response.get_json() == []
  
  
 def test_added_equipment_appears_in_list(client):
-    """Create-then-verify: the new item shows up in the equipment list unchanged."""
+    """the new added item shows up in the equipment list properly."""
     payload = {"name": "Kayak", "category": "Water", "total_units": 2}
     created = client.post("/equipment", json=payload).get_json()
  
@@ -103,7 +103,7 @@ def test_added_equipment_appears_in_list(client):
  
  
 def test_list_equipment_returns_all_items_in_order(client):
-    """Three added items all appear in the list, in the order they were added."""
+    """multiple added items all appear in the list, in the order they were added."""
     created = []
     for i in range(3):
         payload = {"name": f"Item {i}", "category": "MISC", "total_units": 1}
@@ -126,17 +126,17 @@ def test_delete_equipment_removes_it_from_list(client):
     response = client.delete(f"/equipment/{equipment_id}")
     assert response.status_code == 204 
  
-    # Verify the resulting state, not just the status code
+    # verify the item was actually removed
     assert client.get("/equipment").get_json() == []
  
  
 def test_delete_equipment_only_removes_target(client):
     """Deleting one item leaves the other item untouched."""
     keep = client.post(
-        "/equipment", json={"name": "Keep", "category": "MISC", "total_units": 1}
+        "/equipment", json={"name": "KeepMe", "category": "MISC", "total_units": 1}
     ).get_json()
     drop = client.post(
-        "/equipment", json={"name": "Drop", "category": "MISC", "total_units": 1}
+        "/equipment", json={"name": "DropMe", "category": "MISC", "total_units": 1}
     ).get_json()
  
     client.delete(f"/equipment/{drop['id']}")
@@ -165,7 +165,7 @@ def test_checkout_returns_rental_with_expected_fields(client):
  
  
 def test_checkout_sets_due_date_seven_days_out(client):
-    """The due date is set automatically to seven days after checkout (R9)."""
+    """The due date is set automatically to seven days after checkout."""
     payload = {"name": "Tent", "category": "Camping", "total_units": 1}
     equipment_id = client.post("/equipment", json=payload).get_json()["id"]
  
@@ -211,10 +211,8 @@ def test_checkout_unknown_equipment_returns_404_and_creates_nothing(client):
  
  
 def test_checkout_beyond_available_stock_expected_fail(client):
-    """EXPECTED FAILURE: a 1-unit item can be checked out twice
- 
-    Expected: the second checkout is rejected with 400 and available_units stays at 0.
-    Observed: both checkouts return 201 and available_units drops to -1
+    """
+    EXPECTED FAILURE: a 1-unit item can be checked out twice
     This is because a stock check is missing from checkout_equipment().
     """
     payload = {"name": "Tent", "category": "Camping", "total_units": 1}
