@@ -34,7 +34,7 @@ app working without a REST client, and calls the same in-memory store.
 
 ## Entities
 
-- **Equipment**: `id, name, category, total_units, available_units`
+- **Equipment**: `id, name, category, total_units, available_units, damage_notes`
 - **Renter**: `id, name, email, membership_date`
 - **Rental**: `id, equipment_id, renter_id, rental_date, due_date, return_date`
 
@@ -47,6 +47,7 @@ app working without a REST client, and calls the same in-memory store.
 | GET | `/equipment/<id>` | Get one equipment item |
 | PUT | `/equipment/<id>` | Update an equipment item |
 | DELETE | `/equipment/<id>` | Delete an equipment item |
+| PATCH | `/equipment/<id>/damage` | Record damage on an equipment item (`description`) |
 | GET | `/renters` | List all renters |
 | POST | `/renters` | Create a renter |
 | GET | `/renters/<id>` | Get one renter |
