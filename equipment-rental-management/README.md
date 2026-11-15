@@ -48,6 +48,7 @@ app working without a REST client, and calls the same in-memory store.
 | PUT | `/equipment/<id>` | Update an equipment item |
 | DELETE | `/equipment/<id>` | Delete an equipment item |
 | PATCH | `/equipment/<id>/damage` | Record damage on an equipment item (`description`) |
+| POST | `/rentals/<id>/reminder` | Send a return reminder to the renter of an active rental |
 | GET | `/renters` | List all renters |
 | POST | `/renters` | Create a renter |
 | GET | `/renters/<id>` | Get one renter |
