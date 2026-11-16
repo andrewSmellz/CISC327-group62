@@ -4,7 +4,7 @@
 # ============================================================
 
 from datetime import date, timedelta
-
+import pytest
 
 
 # ------------------------------------------------------------
@@ -66,14 +66,14 @@ def test_equipment_get_unique_id(client):
         ids.add(response.get_json()["id"])
     assert len(ids) == 10
 
-
+@pytest.mark.xfail(reason="create_equipment() reads data[\"category\"] directly, so a missing field raises KeyError (500) instead of a 400")
 def test_add_equipment_missing_category_expected_fail(client):
     """EXPECTED FAILURE: a missing field crashes the app (500) instead of returning a 4xx error."""
     response = client.post("/equipment", json={"name": "Tent"})
     assert response.status_code in (400, 422)
     assert client.get("/equipment").get_json() == []
  
- 
+@pytest.mark.xfail(reason="create_equipment() does not validate total_units, so negative values are accepted") 
 def test_add_equipment_negative_units_expected_fail(client):
     """EXPECTED FAILURE: the app accepts total_units=-5 and available_units=-5."""
     payload = {"name": "sleeping bag", "category": "Camping", "total_units": -1}
@@ -209,7 +209,7 @@ def test_checkout_unknown_equipment_returns_404_and_creates_nothing(client):
     # The failed checkout must not leave a rental behind
     assert client.get("/rentals").get_json() == []
  
- 
+@pytest.mark.xfail(reason="checkout_equipment() has no stock check, so a 1-unit item can be checked out twice")
 def test_checkout_beyond_available_stock_expected_fail(client):
     """
     EXPECTED FAILURE: a 1-unit item can be checked out twice
